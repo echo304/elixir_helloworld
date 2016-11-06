@@ -45,17 +45,17 @@ defmodule KV.Registry do
     {:reply, Map.fetch(names, name), state}
   end
 
-  def handle_cast({:create, name}, { names, refs }) do
-    if Map.has_key?(names, name) do
-      {:noreply, names}
-    else
-      {:ok, bucket} = KV.Bucket.start_link
-      ref = Process.monitor bucket
-      refs = Map.put refs, ref, name
-      names = Map.put names, name, bucket
-      {:noreply, {names, refs}}
-    end
-  end
+	def handle_cast({:create, name}, {names, refs}) do
+		if Map.has_key?(names, name) do
+			{:noreply, {names, refs}}
+		else
+			{:ok, pid} = KV.Bucket.Supervisor.start_bucket
+			ref = Process.monitor(pid)
+			refs = Map.put(refs, ref, name)
+			names = Map.put(names, name, pid)
+			{:noreply, {names, refs}}
+		end
+	end
 
   def handle_info({:DOWN, ref, :process, _pid, _reason}, {names, refs}) do
     {name, refs} = Map.pop refs, ref
