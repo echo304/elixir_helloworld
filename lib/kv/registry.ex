@@ -4,10 +4,10 @@ defmodule KV.Registry do
   ## Client API
 
   @doc """
-  Starts the registry.
+  Starts the registry with the given 'name'
   """
-  def start_link do
-    GenServer.start_link(__MODULE__, :ok, [])
+  def start_link(name) do
+    GenServer.start_link(__MODULE__, :ok, name: name)
   end
 
   @doc """
@@ -41,11 +41,11 @@ defmodule KV.Registry do
     {:ok, {names, refs}}
   end
 
-  def handle_call({:lookup, name}, _from, names) do
-    {:reply, Map.fetch(names, name), names}
+  def handle_call({:lookup, name}, _from, { names, _ } = state) do
+    {:reply, Map.fetch(names, name), state}
   end
 
-  def handle_cast({:create, name}, names) do
+  def handle_cast({:create, name}, { names, refs }) do
     if Map.has_key?(names, name) do
       {:noreply, names}
     else
@@ -58,7 +58,7 @@ defmodule KV.Registry do
   end
 
   def handle_info({:DOWN, ref, :process, _pid, _reason}, {names, refs}) do
-    {name, refs} = Map.pop refs ref
+    {name, refs} = Map.pop refs, ref
     names = Map.delete names, name
     {:noreply, {names, refs}}
   end
